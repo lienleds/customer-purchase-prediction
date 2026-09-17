@@ -6,6 +6,7 @@ from typing import Iterable
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_ARROWHEAD
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_CONNECTOR
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
@@ -139,7 +140,7 @@ def add_arrow(slide, start_x: float, start_y: float, end_x: float, end_y: float)
     )
     connector.line.color.rgb = MUTED
     connector.line.width = Pt(2)
-    connector.line.end_arrowhead = True
+    connector.line.end_arrowhead = MSO_ARROWHEAD.TRIANGLE
 
 
 def build_presentation() -> Path:
