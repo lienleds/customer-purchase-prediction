@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import csv
+import time
 from pathlib import Path
 from typing import Iterable
 
+import pandas as pd
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_CONNECTOR
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 REPO_ROOT = Path(__file__).resolve().parent
 OUTPUT_FILE = REPO_ROOT / "customer_purchase_prediction.pptx"
@@ -35,6 +41,40 @@ def dataset_size(default: int = 400) -> int:
     with DATASET_FILE.open(newline="", encoding="utf-8") as handle:
         rows = sum(1 for _ in csv.reader(handle)) - 1
     return rows if rows > 0 else default
+
+
+def compute_model_metrics() -> dict[str, str] | None:
+    if not DATASET_FILE.exists():
+        return None
+
+    df = pd.read_csv(DATASET_FILE)
+    X = df[["Age", "EstimatedSalary"]]
+    y = df["Purchased"]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    model = LogisticRegression(random_state=42, max_iter=1000)
+
+    fit_start = time.perf_counter()
+    model.fit(X_train_scaled, y_train)
+    fit_ms = (time.perf_counter() - fit_start) * 1000
+
+    predict_start = time.perf_counter()
+    y_pred = model.predict(X_test_scaled)
+    predict_ms = (time.perf_counter() - predict_start) * 1000
+
+    accuracy = accuracy_score(y_test, y_pred)
+    return {
+        "accuracy": f"{accuracy:.4f} ({accuracy * 100:.2f}%)",
+        "training_time": f"{fit_ms:.3f} ms",
+        "prediction_latency": f"{predict_ms:.3f} ms",
+    }
 
 
 def add_slide_title(slide, title: str, subtitle: str | None = None) -> None:
@@ -146,6 +186,7 @@ def build_presentation() -> Path:
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
     size = dataset_size()
+    metrics = compute_model_metrics()
 
     # Slide 1
     slide = prs.slides.add_slide(prs.slide_layouts[6])
@@ -247,9 +288,25 @@ def build_presentation() -> Path:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_banner(slide, BLUE)
     add_slide_title(slide, "Accuracy, Benchmark, and Latency", "Use verified script output for exact runtime metrics")
+    accuracy_text = metrics["accuracy"] if metrics else "<run script to fill>"
+    training_time_text = metrics["training_time"] if metrics else "<dataset required>"
+    prediction_latency_text = metrics["prediction_latency"] if metrics else "<dataset required>"
+    guidance_lines = (
+        [
+            "Run: python customer_purchase_prediction.py",
+            "Use its output for confusion matrix values",
+            "Rerun this generator after adding Social_Network_Ads.csv to embed exact metrics",
+        ]
+        if not metrics
+        else [
+            "Metrics were generated from the repository workflow.",
+            "Confusion matrix counts should still be copied from the training script output.",
+            "Rerun after any model or data changes.",
+        ]
+    )
     add_card(slide, 0.75, 1.45, 3.4, 2.1, "Benchmark facts", [f"Dataset size: {size} records", "Split: 80% train / 20% test", "Model: sklearn LogisticRegression"], BLUE)
-    add_card(slide, 4.55, 1.45, 3.8, 2.1, "Exact metrics", ["Accuracy: <run script to fill>", "Training time: <measure during run>", "Prediction latency: <measure during run>"], ORANGE)
-    add_card(slide, 8.75, 1.45, 3.8, 2.1, "How to obtain", ["Run: python customer_purchase_prediction.py", "Use its output for accuracy and confusion matrix values", "Measure fit/predict with time.perf_counter for runtime metrics"], GREEN)
+    add_card(slide, 4.55, 1.45, 3.8, 2.1, "Exact metrics", [f"Accuracy: {accuracy_text}", f"Training time: {training_time_text}", f"Prediction latency: {prediction_latency_text}"], ORANGE)
+    add_card(slide, 8.75, 1.45, 3.8, 2.1, "How to obtain", guidance_lines, GREEN)
     add_card(slide, 0.75, 4.0, 5.6, 1.8, "Confusion matrix definitions", ["TP: predicted purchase and actual purchase", "TN: predicted no purchase and actual no purchase", "FP: predicted purchase but actual no purchase", "FN: predicted no purchase but actual purchase"], BLUE)
     add_card(slide, 6.75, 4.0, 5.8, 1.8, "Reporting guidance", ["Do not guess exact scores.", "If execution is unavailable, keep placeholders and mention the command used to produce them."], ORANGE)
 
