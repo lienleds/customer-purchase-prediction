@@ -250,7 +250,7 @@ def build_presentation() -> Path:
     add_slide_title(slide, "Accuracy, Benchmark, and Latency", "Use verified script output for exact runtime metrics")
     add_card(slide, 0.75, 1.45, 3.4, 2.1, "Benchmark facts", [f"Dataset size: {size} records", "Split: 80% train / 20% test", "Model: sklearn LogisticRegression"], BLUE)
     add_card(slide, 4.55, 1.45, 3.8, 2.1, "Exact metrics", ["Accuracy: <run script to fill>", "Training time: <measure during run>", "Prediction latency: <measure during run>"], ORANGE)
-    add_card(slide, 8.75, 1.45, 3.8, 2.1, "How to obtain", ["Run: python create_presentation.py", "Run: python customer_purchase_prediction.py", "Copy verified results into final deck if needed"], GREEN)
+    add_card(slide, 8.75, 1.45, 3.8, 2.1, "How to obtain", ["Run: python customer_purchase_prediction.py", "Use its output for accuracy and confusion matrix values", "Measure fit/predict with time.perf_counter for runtime metrics"], GREEN)
     add_card(slide, 0.75, 4.0, 5.6, 1.8, "Confusion matrix definitions", ["TP: predicted purchase and actual purchase", "TN: predicted no purchase and actual no purchase", "FP: predicted purchase but actual no purchase", "FN: predicted no purchase but actual purchase"], BLUE)
     add_card(slide, 6.75, 4.0, 5.8, 1.8, "Reporting guidance", ["Do not guess exact scores.", "If execution is unavailable, keep placeholders and mention the command used to produce them."], ORANGE)
 
